@@ -79,14 +79,17 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
+                Log.d("main","onStartTrackingTouch");
+                mMediaPlayer.pause();
                 isSeekbarChaning = true;
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
+                Log.d("main","onStopTrackingTouch");
                 isSeekbarChaning = false;
                 mMediaPlayer.seekTo(seekBar.getProgress());
+                mMediaPlayer.start();
 
             }
         });
@@ -216,8 +219,11 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
         @Override
         public void onCompletion(MediaPlayer mp) {
-            timer.cancel();
-            timer = null;
+            if(timer!=null){
+                timer.cancel();
+                timer = null;
+            }
+
 //            mMediaPlayer.start();
         }
     }
