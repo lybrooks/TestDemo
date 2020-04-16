@@ -12,9 +12,12 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
 
 import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MediaPlayerActivity extends AppCompatActivity {
@@ -25,6 +28,10 @@ public class MediaPlayerActivity extends AppCompatActivity {
     private boolean hasActiveHolder = false;
     private SeekBar mSb_main_bar;
 
+    private Timer timer;//定时器
+    private boolean isSeekbarChaning;
+    private ImageButton mIbcontrol;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,25 +39,59 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
         mSvVideoPlayer = findViewById(R.id.sfv);
         mSb_main_bar = findViewById(R.id.sb_main_bar);
+        mIbcontrol = findViewById(R.id.ib_control);
+        initListener();
+
+        playVideo();
+    }
+
+    private void initListener() {
+        mIbcontrol.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mMediaPlayer != null) {
+                    if (mMediaPlayer.isPlaying()) {
+                        timer.cancel();
+                        timer=null;
+                        mMediaPlayer.pause();
+                    } else {
+                        mMediaPlayer.start();
+                        timer = new Timer();
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (!isSeekbarChaning) {
+                                    mSb_main_bar.setProgress(mMediaPlayer.getCurrentPosition());
+                                }
+                            }
+                        }, 0, 50);
+                    }
+
+                }
+            }
+        });
+
         mSb_main_bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Log.d("main","progress="+progress+"==="+);
-                long a= mMediaPlayer.getCurrentPosition()/mMediaPlayer.getDuration();
-//                mMediaPlayer.seekTo(progress);
+
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                isSeekbarChaning = true;
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
 
+                isSeekbarChaning = false;
+                mMediaPlayer.seekTo(seekBar.getProgress());
+
             }
         });
-        playVideo();
+
+
     }
 
     /**
@@ -120,7 +161,6 @@ public class MediaPlayerActivity extends AppCompatActivity {
                 mMediaPlayer.setDisplay(mSvVideoPlayer.getHolder());
 
 
-
                 mMediaPlayer.setDataSource(fileDescriptor.getFileDescriptor(),
                         fileDescriptor.getStartOffset(),
                         fileDescriptor.getLength());
@@ -142,7 +182,7 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
         @Override
         public void onBufferingUpdate(MediaPlayer mp, int percent) {
-            Log.d("main","percent="+percent);
+            Log.d("main", "percent=" + percent);
         }
     }
 
@@ -159,7 +199,9 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
         @Override
         public void onPrepared(MediaPlayer mp) {
-            mMediaPlayer.start();
+            int duration = mMediaPlayer.getDuration();
+            mSb_main_bar.setMax(duration);
+//            mMediaPlayer.start();
             if (position > 0) {
 
                 mMediaPlayer.seekTo(position);
@@ -174,6 +216,8 @@ public class MediaPlayerActivity extends AppCompatActivity {
 
         @Override
         public void onCompletion(MediaPlayer mp) {
+            timer.cancel();
+            timer = null;
 //            mMediaPlayer.start();
         }
     }
@@ -188,6 +232,10 @@ public class MediaPlayerActivity extends AppCompatActivity {
             }
             mMediaPlayer.release();
             mMediaPlayer = null;
+        }
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
         }
         super.onDestroy();
     }
